@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Entrupy Frontend
 
-## Getting Started
+Web client for Entrupy, built with **Next.js** (App Router), **React**, **Tailwind CSS**, and **Axios** for HTTP. It provides user registration and login, product flows, and admin screens wired to the backend API.
 
-First, run the development server:
+## Requirements
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 18+ (or a compatible runtime such as Bun)
+- Backend API reachable at the URL configured for the client (see below)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Development server (default: http://localhost:3000) |
+| `npm run build` | Production build |
+| `npm run start` | Run production server |
+| `npm run lint` | ESLint |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Configuration
 
-## Learn More
+The Axios instance in `backend_link.js` sets `baseURL` to the public API URL (currently the Render deployment). Change that value for local development (for example `http://127.0.0.1:8000/`) or switch to `process.env.NEXT_PUBLIC_API_BASE_URL` if you prefer per-environment builds (e.g. on Vercel).
 
-To learn more about Next.js, take a look at the following resources:
+The frontend origin must be allowed by the API’s CORS settings (origins must match what the browser sends, without a trailing slash).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## App structure (routes)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Path | Role |
+|------|------|
+| `/` | Landing / welcome; entry to the app. |
+| `/home` | Main user area after onboarding. |
+| `/login`, `/register` | Authentication forms; API calls to `/login` and `/register`. |
+| `/product/[pID]` | Product detail (dynamic segment). |
+| `/admin_login`, `/admin` | Admin sign-in and admin UI. |
 
-## Deploy on Vercel
+Shared layout and global styles live under `app/layout.js` and `app/globals.css`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Design choices
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js App Router** with client components (`"use client"`) where interactivity is required (forms, navigation).
+- **Tailwind CSS** for layout and a consistent dark theme with a light accent (`#f5e6d3` on dark backgrounds).
+- **Axios** centralizes API configuration (base URL, JSON headers) in one module so pages import a single `api` client.
+- **Authentication UX**: login can store a token in a browser cookie for follow-up requests; align cookie usage with backend expectations (JWT in body vs. header) as you extend the app.
+- **Separation of concerns**: UI routes live under `app/`; API details are not duplicated across pages beyond importing the shared client.
+
+## Relation to the backend
+
+The frontend expects the REST API described in the backend README: JSON request/response bodies, JWT `token` fields where the API requires authentication, and product endpoints under `/product_list` and `/product/{pID}`.
+
+Deploying **frontend** (e.g. Vercel) and **backend** (e.g. Render) on different hosts requires correct CORS settings on the API and a correct public API URL in the frontend client configuration.
