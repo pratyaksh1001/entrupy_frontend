@@ -98,7 +98,7 @@ export default function HomePage() {
                     <a href="#" className="hover:text-[#f5e6d3]">
                         Dashboard
                     </a>
-                    <a href="#" className="hover:text-[#f5e6d3]">
+                    <a href="/admin_login" className="hover:text-[#f5e6d3]">
                         Admin
                     </a>
 
