@@ -31,7 +31,7 @@ export default function HomePage() {
                     Cookies.remove("user_name");
                     setUser(null);
                 }
-            } catch (err) {
+            } catch {
                 Cookies.remove("auth_token");
                 Cookies.remove("user_name");
                 setUser(null);
@@ -71,9 +71,11 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen bg-[#0f0f0f] text-white">
-            {/* Top Bar */}
-            <div className="w-full bg-[#1a1a1a] px-6 py-4 flex items-center justify-between shadow-md">
-                <h1 className="text-lg font-semibold text-[#f5e6d3]">MyApp</h1>
+            {/* 🔝 TOP BAR */}
+            <div className="w-full bg-[#1a1a1a] px-6 py-4 flex items-center justify-between shadow-md border-b border-gray-800">
+                <h1 className="text-lg font-semibold text-[#f5e6d3]">
+                    Entrupy
+                </h1>
 
                 <div className="flex items-center gap-2 w-1/3">
                     <input
@@ -92,12 +94,10 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex items-center gap-6 text-sm">
-                    <a href="#" className="hover:text-[#f5e6d3]">
+                    <span className="hover:text-[#f5e6d3] cursor-pointer">
                         Home
-                    </a>
-                    <a href="#" className="hover:text-[#f5e6d3]">
-                        Dashboard
-                    </a>
+                    </span>
+
                     <a href="/admin_login" className="hover:text-[#f5e6d3]">
                         Admin
                     </a>
@@ -123,7 +123,7 @@ export default function HomePage() {
                 </div>
             </div>
 
-            {/* Results */}
+            {/* 🔍 RESULTS */}
             <div className="p-6">
                 {loading ? (
                     <p className="text-gray-400">Searching...</p>
@@ -137,8 +137,16 @@ export default function HomePage() {
                             <Link
                                 key={item.pID}
                                 href={`/product/${item.pID}`}
-                                className="bg-[#1a1a1a] p-5 rounded-xl shadow-lg hover:shadow-xl transition"
+                                className="bg-[#1a1a1a] p-5 rounded-xl shadow-lg hover:shadow-xl transition border border-gray-800"
                             >
+                                {item.url && (
+                                    <img
+                                        src={item.url}
+                                        alt={item.product}
+                                        className="w-full h-48 object-cover rounded-lg mb-3"
+                                    />
+                                )}
+
                                 <h3 className="text-lg font-semibold text-[#f5e6d3] mb-2">
                                     {item.product}
                                 </h3>
@@ -151,18 +159,9 @@ export default function HomePage() {
                                     Category: {item.category}
                                 </p>
 
-                                <p className="text-white font-medium mt-2">
-                                    ₹{item.price}
+                                <p className="text-white font-medium mt-2 text-lg">
+                                    ${item.price}
                                 </p>
-
-                                {/* URL */}
-                                {item.url && (
-                                    <img
-                                        src={item.url}
-                                        alt={item.product}
-                                        className="w-full h-40 object-cover rounded-lg mt-3"
-                                    />
-                                )}
                             </Link>
                         ))}
                     </div>

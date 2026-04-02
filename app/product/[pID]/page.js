@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { api } from "@/backend_link";
+import Link from "next/link";
+
 import {
     LineChart,
     Line,
@@ -11,6 +13,7 @@ import {
     YAxis,
     Tooltip,
     ResponsiveContainer,
+    CartesianGrid,
 } from "recharts";
 
 export default function ProductPage() {
@@ -34,7 +37,6 @@ export default function ProductPage() {
 
         const init = async () => {
             try {
-                // auth check
                 const authRes = await api.post("/auth", { token });
 
                 if (!authRes.data.success) {
@@ -46,20 +48,29 @@ export default function ProductPage() {
 
                 setUser(userName);
 
-                // fetch product data
-                const res = await api.get(`/product/${pID}`, {
-                    params: { token },
-                });
+                const res = await api.post(`/product/${pID}`, { token });
 
                 setImages(res.data.images || []);
                 setProduct(res.data.product || null);
 
-                setHistory(
-                    (res.data.history || []).map((h) => ({
-                        date: new Date(h[0]).toLocaleDateString(),
-                        price: h[1],
-                    })),
-                );
+                const rawData = res.data.data || [];
+
+                const formatted = rawData.map((item) => {
+                    const time = Object.keys(item)[0];
+                    const price = item[time];
+
+                    return {
+                        date: new Date(time).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                        }),
+                        price,
+                        rawTime: new Date(time),
+                    };
+                });
+
+                formatted.sort((a, b) => a.rawTime - b.rawTime);
+                setHistory(formatted);
             } catch (err) {
                 console.error(err);
             } finally {
@@ -70,6 +81,12 @@ export default function ProductPage() {
         init();
     }, [pID]);
 
+    const handleLogout = () => {
+        Cookies.remove("auth_token");
+        Cookies.remove("user_name");
+        router.push("/login");
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f] text-white">
@@ -79,22 +96,60 @@ export default function ProductPage() {
     }
 
     return (
-        <div className="h-screen bg-[#0f0f0f] text-white p-6 overflow-hidden">
-            <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-                {/* LEFT SECTION */}
-                <div className="lg:col-span-2 flex flex-col gap-4 overflow-y-auto pr-2">
-                    {/* Main Image */}
+        <div className="h-screen flex flex-col bg-[#0f0f0f] text-white">
+            {/* TOP BAR */}
+            <div className="w-full bg-[#1a1a1a] px-6 py-4 flex items-center justify-between border-b border-gray-800">
+                <h1 className="text-[#f5e6d3] font-semibold text-lg">
+                    Entrupy
+                </h1>
+
+                <div className="flex gap-6 items-center text-sm">
+                    <Link href="/home" className="hover:text-[#f5e6d3]">
+                        Home
+                    </Link>
+                    <Link href="/admin_login" className="hover:text-[#f5e6d3]">
+                        Admin
+                    </Link>
+
+                    {user ? (
+                        <>
+                            <span className="text-[#f5e6d3]">{user}</span>
+                            <button
+                                onClick={handleLogout}
+                                className="text-red-400 hover:text-red-300"
+                            >
+                                Logout
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => router.push("/login")}
+                            className="bg-[#f5e6d3] text-black px-3 py-1 rounded-md"
+                        >
+                            Login
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* MAIN */}
+            <div className="flex flex-1 overflow-hidden">
+                {/* LEFT */}
+                <div className="flex-1 p-6 overflow-y-auto space-y-6">
+                    {/* MAIN IMAGE */}
                     {images[0] && (
-                        <img
-                            src={images[0]}
-                            alt="product"
-                            className="w-full h-[350px] object-cover rounded-xl"
-                        />
+                        <div className="w-full h-[420px] bg-[#111] rounded-xl flex items-center justify-center overflow-hidden">
+                            <img
+                                src={images[0]}
+                                alt="product"
+                                className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-105"
+                            />
+                        </div>
                     )}
 
-                    {/* Product Details */}
+                    {/* DETAILS */}
                     {product && (
-                        <div className="bg-[#1a1a1a] p-4 rounded-xl shadow-lg">
+                        <div className="bg-[#1a1a1a] p-5 rounded-xl">
                             <h2 className="text-xl font-semibold text-[#f5e6d3] mb-2">
                                 {product.product}
                             </h2>
@@ -112,23 +167,30 @@ export default function ProductPage() {
                         </div>
                     )}
 
-                    {/* Price Graph */}
-                    <div className="bg-[#1a1a1a] p-4 rounded-xl shadow-lg">
-                        <h3 className="text-lg text-[#f5e6d3] mb-3">
-                            Price History
-                        </h3>
+                    {/* GRAPH */}
+                    <div className="bg-[#1a1a1a] p-6 rounded-xl">
+                        <h3 className="text-[#f5e6d3] mb-4">Price History</h3>
 
-                        <div className="w-full h-64">
+                        <div className="w-full h-[320px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={history}>
+                                    <CartesianGrid stroke="#333" />
                                     <XAxis dataKey="date" stroke="#aaa" />
                                     <YAxis stroke="#aaa" />
-                                    <Tooltip />
+
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: "#111",
+                                            border: "1px solid #444",
+                                        }}
+                                    />
+
                                     <Line
                                         type="monotone"
                                         dataKey="price"
                                         stroke="#f5e6d3"
                                         strokeWidth={2}
+                                        dot={{ r: 3 }}
                                     />
                                 </LineChart>
                             </ResponsiveContainer>
@@ -136,17 +198,24 @@ export default function ProductPage() {
                     </div>
                 </div>
 
-                {/* RIGHT SECTION */}
-                <div className="bg-[#1a1a1a] p-4 rounded-xl shadow-lg overflow-y-auto">
-                    <h3 className="text-lg text-[#f5e6d3] mb-4">More Images</h3>
+                {/* RIGHT IMAGES */}
+                <div className="w-80 bg-[#1a1a1a] p-4 overflow-y-auto border-l border-gray-800">
+                    <h3 className="text-[#f5e6d3] mb-4">More Images</h3>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-4">
                         {images.slice(1).map((img, idx) => (
                             <img
                                 key={idx}
                                 src={img}
                                 alt="product"
-                                className="w-full h-28 object-cover rounded-md hover:scale-105 transition"
+                                onClick={() => {
+                                    const newImages = [
+                                        img,
+                                        ...images.filter((i) => i !== img),
+                                    ];
+                                    setImages(newImages);
+                                }}
+                                className="w-full h-40 object-cover rounded-lg cursor-pointer hover:scale-105 transition"
                             />
                         ))}
                     </div>

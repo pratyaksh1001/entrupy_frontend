@@ -32,7 +32,6 @@ export default function AdminPage() {
     const [selectedColumn, setSelectedColumn] = useState(null);
     const [search, setSearch] = useState("");
 
-    // 🔐 INIT
     useEffect(() => {
         const token = Cookies.get("auth_token");
 
@@ -65,7 +64,6 @@ export default function AdminPage() {
         init();
     }, []);
 
-    // 📂 FETCH TABLE
     const fetchTable = async (table) => {
         try {
             setActiveTable(table);
@@ -93,7 +91,6 @@ export default function AdminPage() {
         }
     };
 
-    // 🔍 SEARCH
     const handleSearch = async () => {
         if (!selectedColumn || !search) return;
 
@@ -118,28 +115,29 @@ export default function AdminPage() {
 
             setData(formatted);
         } catch (err) {
-            console.error("Search failed:", err);
+            console.error(err);
         }
     };
 
-    // ✏️ EDIT
-    const handleEdit = (rowIndex, colName, value) => {
-        setEditingCell({ rowIndex, colName });
-        setEditValue(value);
+    const handleEdit = (row, colName) => {
+        setEditingCell({ pID: row.pID, colName });
+        setEditValue(row[colName]);
     };
 
-    const handleSave = async (rowIndex, colName) => {
+    const handleSave = async (row, colName) => {
         try {
-            await api.post("/update_table", {
+            await api.post("/admin/update", {
                 table: activeTable,
                 column: colName,
                 value: editValue,
-                row: data[rowIndex],
+                pID: row.pID,
                 token: Cookies.get("auth_token"),
             });
 
-            const newData = [...data];
-            newData[rowIndex][colName] = editValue;
+            const newData = data.map((item) =>
+                item.pID === row.pID ? { ...item, [colName]: editValue } : item,
+            );
+
             setData(newData);
         } catch (err) {
             console.error(err);
@@ -164,37 +162,53 @@ export default function AdminPage() {
 
     return (
         <div className="h-screen flex flex-col bg-[#0f0f0f] text-white">
-            {/* 🔝 TOP BAR */}
-            <div className="w-full bg-[#1a1a1a] px-6 py-4 flex items-center justify-between">
-                <div className="flex gap-2 w-1/2">
+            <div className="w-full bg-[#1a1a1a] px-8 py-4 flex items-center justify-between border-b border-gray-800">
+                <div className="flex gap-3 w-1/2">
                     <Input
-                        placeholder="Search..."
+                        placeholder={
+                            selectedColumn
+                                ? `Search ${selectedColumn}`
+                                : "Select column first"
+                        }
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        className="bg-[#111] border-gray-700 text-white"
                     />
-                    <Button onClick={handleSearch}>Search</Button>
+                    <Button
+                        className="bg-[#f5e6d3] text-black hover:bg-[#e8d5bb]"
+                        onClick={handleSearch}
+                    >
+                        Search
+                    </Button>
                 </div>
 
-                <div className="flex gap-6">
-                    <span>Analytics</span>
-                    <span className="text-[#f5e6d3]">Admin</span>
-                    <button onClick={handleLogout} className="text-red-400">
+                <div className="flex gap-6 items-center text-sm">
+                    <span className="hover:text-[#f5e6d3] cursor-pointer">
+                        Analytics
+                    </span>
+                    <span className="text-[#f5e6d3] font-semibold">Admin</span>
+                    <button
+                        onClick={handleLogout}
+                        className="text-red-400 hover:text-red-300"
+                    >
                         Logout
                     </button>
                 </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* SIDEBAR */}
-                <div className="w-60 bg-[#1a1a1a] p-4">
+                <div className="w-64 bg-[#1a1a1a] p-5 border-r border-gray-800 overflow-y-auto">
+                    <div className="text-[#f5e6d3] mb-4 font-semibold">
+                        Tables
+                    </div>
                     {tables.map((table) => (
                         <button
                             key={table}
                             onClick={() => fetchTable(table)}
-                            className={`block w-full text-left px-3 py-2 rounded ${
+                            className={`w-full text-left px-3 py-2 rounded-md mb-1 transition ${
                                 activeTable === table
-                                    ? "bg-[#f5e6d3] text-black"
-                                    : "hover:bg-[#333]"
+                                    ? "bg-[#f5e6d3] text-black font-medium"
+                                    : "hover:bg-[#2a2a2a]"
                             }`}
                         >
                             {table}
@@ -202,84 +216,94 @@ export default function AdminPage() {
                     ))}
                 </div>
 
-                {/* TABLE */}
                 <div className="flex-1 p-6 overflow-auto">
                     {!activeTable ? (
-                        <p>Select a table</p>
+                        <div className="text-gray-400 text-center mt-20">
+                            Select a table to view data
+                        </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {columns.map((col) => (
-                                        <TableHead
-                                            key={col}
-                                            onClick={() =>
-                                                setSelectedColumn(col)
-                                            }
-                                            className={`cursor-pointer ${
-                                                selectedColumn === col
-                                                    ? "text-[#f5e6d3]"
-                                                    : ""
-                                            }`}
-                                        >
-                                            {col.toUpperCase()}
-                                        </TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-
-                            <TableBody>
-                                {data.map((row, i) => (
-                                    <TableRow key={i}>
-                                        {columns.map((col) => {
-                                            const isEditing =
-                                                editingCell?.rowIndex === i &&
-                                                editingCell?.colName === col;
-
-                                            return (
-                                                <TableCell
-                                                    key={col}
-                                                    onClick={() =>
-                                                        !isEditing &&
-                                                        handleEdit(
-                                                            i,
-                                                            col,
-                                                            row[col],
-                                                        )
-                                                    }
-                                                >
-                                                    {isEditing ? (
-                                                        <Input
-                                                            autoFocus
-                                                            value={editValue}
-                                                            onChange={(e) =>
-                                                                setEditValue(
-                                                                    e.target
-                                                                        .value,
-                                                                )
-                                                            }
-                                                            onKeyDown={(e) => {
-                                                                if (
-                                                                    e.key ===
-                                                                    "Enter"
-                                                                ) {
-                                                                    handleSave(
-                                                                        i,
-                                                                        col,
-                                                                    );
-                                                                }
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        row[col]
-                                                    )}
-                                                </TableCell>
-                                            );
-                                        })}
+                        <div className="bg-[#1a1a1a] rounded-xl shadow-lg border border-gray-800 overflow-hidden">
+                            <Table className="w-full">
+                                <TableHeader>
+                                    <TableRow className="border-b border-gray-700">
+                                        {columns.map((col) => (
+                                            <TableHead
+                                                key={col}
+                                                onClick={() =>
+                                                    setSelectedColumn(col)
+                                                }
+                                                className={`text-white font-semibold text-sm uppercase tracking-wide px-4 py-3 cursor-pointer ${
+                                                    selectedColumn === col
+                                                        ? "text-[#f5e6d3]"
+                                                        : ""
+                                                }`}
+                                            >
+                                                {col}
+                                            </TableHead>
+                                        ))}
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+
+                                <TableBody>
+                                    {data.map((row) => (
+                                        <TableRow
+                                            key={row.pID}
+                                            className="border-b border-gray-800 hover:bg-[#121212]"
+                                        >
+                                            {columns.map((col) => {
+                                                const isEditing =
+                                                    editingCell?.pID ===
+                                                        row.pID &&
+                                                    editingCell?.colName ===
+                                                        col;
+
+                                                return (
+                                                    <TableCell
+                                                        key={col}
+                                                        className="px-4 py-3 text-sm text-gray-300 cursor-pointer"
+                                                        onClick={() =>
+                                                            !isEditing &&
+                                                            handleEdit(row, col)
+                                                        }
+                                                    >
+                                                        {isEditing ? (
+                                                            <Input
+                                                                autoFocus
+                                                                value={
+                                                                    editValue
+                                                                }
+                                                                onChange={(e) =>
+                                                                    setEditValue(
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                onKeyDown={(
+                                                                    e,
+                                                                ) => {
+                                                                    if (
+                                                                        e.key ===
+                                                                        "Enter"
+                                                                    ) {
+                                                                        handleSave(
+                                                                            row,
+                                                                            col,
+                                                                        );
+                                                                    }
+                                                                }}
+                                                                className="bg-[#111] border-gray-700 text-white"
+                                                            />
+                                                        ) : (
+                                                            (row[col] ?? "-")
+                                                        )}
+                                                    </TableCell>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </div>
             </div>
